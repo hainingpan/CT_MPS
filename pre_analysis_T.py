@@ -6,7 +6,7 @@ sys.path.append(dir_path)
 from tqdm import tqdm
 from plot_utils import *
 
-L=20
+L=40
 params_list=[
 ({'nu':0,'de':1,},
 {
@@ -46,7 +46,7 @@ for fixed_params,vary_params in params_list:
         input_params_template='{p_ctrl:.3f},{p_proj:.3f},{L},{sC},{sm} ',
         load_data=load_json,
         filename=f'params_CT_MPS_0_C_m_T_L{L}_series.txt',
-        filelist=None,
+        filelist='exist_all.txt',
         load=False,
         data_dict=None,
         # data_dict_file='xj({nu},{de})_C_m.pickle', 
@@ -55,7 +55,7 @@ for fixed_params,vary_params in params_list:
 
 with open(f'params_CT_MPS_0_C_m_T_L{L}_series.txt','r') as f:
     # lines=f.readlines()
-    linewidth=50
+    linewidth=250
     count=0
     total_string = []
     string = ''
