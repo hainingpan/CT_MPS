@@ -2,8 +2,8 @@ using ITensors
 using Random
 using LinearAlgebra
 using MKL
-using Pkg
 using JSON
+using Pkg
 Pkg.activate("CT")
 using CT
 using Printf
@@ -87,8 +87,8 @@ end
 function main()
     start_time = time()
 
-    println("Uses threads: ",BLAS.get_num_threads())
-    println("Uses backends: ",BLAS.get_config())
+    # println("Uses threads: ",BLAS.get_num_threads())
+    # println("Uses backends: ",BLAS.get_config())
     args = parse_my_args()
     results = run_dw_t(args["L"], args["p_ctrl"], args["p_proj"], args["seed_C"],args["seed_m"])
 
@@ -100,7 +100,7 @@ function main()
     end
     elapsed_time = time() - start_time
     println("p_ctrl: ", args["p_ctrl"], " p_proj: ", args["p_proj"], " L: ", args["L"], " seed_C: ", args["seed_C"], " seed_m: ", args["seed_m"])
-    println("Execution time: ", elapsed_time, " s")
+    println("Execution time: ",@sprintf("%.2f", elapsed_time), " s")
 end
 
 function main_interactive(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,seed_m::Int)
@@ -126,7 +126,8 @@ function main_interactive(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,see
         end
         elapsed_time = time() - start_time
         println("p_ctrl: ", args["p_ctrl"], " p_proj: ", p_proj, " L: ", L, " seed_C: ", seed_C, " seed_m: ", seed_m)
-        println("Execution time: ", elapsed_time, " s")
+        println("Execution time: ",@sprintf("%.2f", elapsed_time), " s")
+        flush(stdout)
     # end
 end
 
