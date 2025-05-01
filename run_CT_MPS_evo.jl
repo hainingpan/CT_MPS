@@ -2,8 +2,8 @@ using ITensors
 using Random
 using LinearAlgebra
 using MKL
-using Pkg
 using JSON
+using Pkg
 Pkg.activate("CT")
 using CT
 using Printf
@@ -33,15 +33,14 @@ function run_dw_t(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,seed_m::Int
     for idx in 1:tf
         try
             i=CT.random_control!(ct,i,p_ctrl,p_proj)
+            # Update maxbond after successful step if needed outside the loop or at the end
         catch e
             # Handle the error
             println("Caught an error: ", e)
             success = false
+            maxbond = CT.max_bond_dim(ct.mps) # Calculate maxbond only on error
+            O=CT.Z(ct)
             break
-        finally
-            # Code that always executes, regardless of error
-            maxbond = CT.max_bond_dim(ct.mps)
-            
         end
         
     end
@@ -111,7 +110,7 @@ function main_interactive(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,see
     end
     elapsed_time = time() - start_time
     println("p_ctrl: ", args["p_ctrl"], " p_proj: ", p_proj, " L: ", L, " seed_C: ", seed_C, " seed_m: ", seed_m)
-    println("Execution time: ", elapsed_time, " s")
+    println("Execution time: ",@sprintf("%.2f", elapsed_time), " s")
 end
 
 if isdefined(Main, :PROGRAM_FILE) && abspath(PROGRAM_FILE) == @__FILE__
