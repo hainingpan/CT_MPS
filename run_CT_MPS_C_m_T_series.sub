@@ -49,4 +49,4 @@ Log = $(Cluster).log
 
 
 # queue arguments from params_CT_MPS_0_C_m_T_series.txt
-queue arguments from params_CT_MPS_0_C_m_T_L20_series.txt
+queue arguments from params_CT_MPS_0_C_m_T_L30_series.txt

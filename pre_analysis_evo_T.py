@@ -11,13 +11,13 @@ params_list=[
 ({'nu':0,'de':1,},
 {
 'p_proj':[0,],
-'sC':np.arange(0,100),
+'sC':np.arange(0,500),
 'sm':[0],
 'L':[L],
-'maxdim':[2**13,],
+'maxdim':[2048,],
 # 'cutoff': [1e-10,1e-9,1e-8],
 # 'cutoff': [1e-5,1e-3,1e-1],
-'cutoff': [1e-15,1e-10, 1e-5,],
+'cutoff': [1e-15,1e-10, 1e-8, 1e-5,],
 'p_ctrl':np.linspace(0,1,21),
 }
 ),

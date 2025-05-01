@@ -5,7 +5,7 @@ sys.path.append(dir_path)
 
 from tqdm import tqdm
 from plot_utils import *
-L=20
+L=40
 params_list=[
 ({'nu':0,'de':1,},
 {

@@ -46,7 +46,7 @@ for fixed_params,vary_params in params_list:
         input_params_template='{p_ctrl:.3f},{p_proj:.3f},{L},{sC},{sm} ',
         load_data=load_json,
         filename=f'params_CT_MPS_0_C_m_T_L{L}_series.txt',
-        filelist='exist_all.txt',
+        filelist=None,
         load=False,
         data_dict=None,
         # data_dict_file='xj({nu},{de})_C_m.pickle', 
@@ -55,7 +55,7 @@ for fixed_params,vary_params in params_list:
 
 with open(f'params_CT_MPS_0_C_m_T_L{L}_series.txt','r') as f:
     # lines=f.readlines()
-    linewidth=250
+    linewidth=1000
     count=0
     total_string = []
     string = ''
