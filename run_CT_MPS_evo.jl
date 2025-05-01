@@ -24,13 +24,14 @@ function random_int(L,lower_bound,upper_bound,seed=nothing)
 end
 
 function run_dw_t(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,seed_m::Int,maxdim::Int,cutoff::Float64)
-    ct=CT.CT_MPS(L=L,seed=0,seed_C=seed_C,seed_m=seed_m,folded=true,store_op=true,store_vec=false,ancilla=0,xj=Set([0]),x0=1//2^L,_maxdim=maxdim,_cutoff=cutoff)
+    @time ct=CT.CT_MPS(L=L,seed=0,seed_C=seed_C,seed_m=seed_m,folded=true,store_op=true,store_vec=false,ancilla=0,xj=Set([0]),x0=1//2^L,_maxdim=maxdim,_cutoff=cutoff)
     print("x0: ", ct.x0)
     i=L
     tf=(ct.ancilla ==0) ? 2*ct.L^2 : div(ct.L^2,2)
     maxbond = CT.max_bond_dim(ct.mps)
     success = true
     for idx in 1:tf
+        print(idx,",")
         try
             i=CT.random_control!(ct,i,p_ctrl,p_proj)
             # Update maxbond after successful step if needed outside the loop or at the end
@@ -39,7 +40,6 @@ function run_dw_t(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,seed_m::Int
             println("Caught an error: ", e)
             success = false
             maxbond = CT.max_bond_dim(ct.mps) # Calculate maxbond only on error
-            O=CT.Z(ct)
             break
         end
         
