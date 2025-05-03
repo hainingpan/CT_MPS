@@ -16,3 +16,6 @@ obs-del
 J[0-9]*.sh
 *.out
 *.err
+*.o*
+*.e*
+*.e*.*

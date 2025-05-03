@@ -9,7 +9,7 @@ main_interactive(10,0.5,0.,0,0,1024,1e-10)
 #     [:CT, :ITensors, :ArgParse, :JSON, :MKL],
 #     sysimage_path="run_CT_MPS_evo_generic.so",
 #     precompile_execution_file="precompile_evo.jl",
-#     cpu_target="generic;skylake-avx512,clone_all;znver2,clone_all"
+#     cpu_target="generic"
 #   )
 
 # create_sysimage(

@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 export JULIAUP_NO_UPDATE_CHECK=1     # no “new version available” ping
+export JULIA_NUM_THREADS=4
+export OPENBLAS_NUM_THREADS=4 # Or MKL_NUM_THREADS=4 if using MKL
+
 SYSIMG=run_CT_MPS_evo_generic.so; PROJ="CT"
-L=10; PCTRL=0.3; PPROJ=0.0; SC=0; SM=0; DM=512
-EPS=(1e-8 1e-9 1e-10 1e-15)
+L=10; PCTRL=0.3; PPROJ=0.0; SC=0; SM=0; DM=256
+# EPS=(1e-8 1e-9 1e-10 1e-15)
+EPS=(1e-8 1e-9)
+
 
 for e in "${EPS[@]}"; do
   echo "L=$L PCTRL=$PCTRL PPROJ=$PPROJ SC=$SC SM=$SM DM=$DM EPS=$e"

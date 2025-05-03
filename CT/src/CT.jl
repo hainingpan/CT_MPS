@@ -577,6 +577,16 @@ function max_bond_dim(mps::MPS)
     end
     return max_dim
 end
+
+function all_bond_dim(mps::MPS)
+    dim_list = []
+    for i in 1:length(mps)-1
+        dim = commonind(mps[i], mps[i+1])
+        push!(dim_list, space(dim))
+    end
+    return dim_list
+end
+
 """add one, i1 is the leading (physical) qubit"""
 function add1(i1::Int,L::Int,phy_ram::Vector{Int},phy_list::Vector{Int})
     A1=OpSum()

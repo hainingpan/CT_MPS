@@ -24,14 +24,15 @@ function random_int(L,lower_bound,upper_bound,seed=nothing)
 end
 
 function run_dw_t(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,seed_m::Int,maxdim::Int,cutoff::Float64)
-    @time ct=CT.CT_MPS(L=L,seed=0,seed_C=seed_C,seed_m=seed_m,folded=true,store_op=true,store_vec=false,ancilla=0,xj=Set([0]),x0=1//2^L,_maxdim=maxdim,_cutoff=cutoff)
+    ct=CT.CT_MPS(L=L,seed=0,seed_C=seed_C,seed_m=seed_m,folded=true,store_op=true,store_vec=false,ancilla=0,xj=Set([0]),x0=1//2^L,_maxdim=maxdim,_cutoff=cutoff)
     print("x0: ", ct.x0)
     i=L
     tf=(ct.ancilla ==0) ? 2*ct.L^2 : div(ct.L^2,2)
-    maxbond = CT.max_bond_dim(ct.mps)
+    maxbond = zeros(Int, tf+1, ct.L-1)
+    maxbond[1,:] = CT.all_bond_dim(ct.mps)
     success = true
     for idx in 1:tf
-        print(idx,",")
+        # print(idx,",")
         try
             i=CT.random_control!(ct,i,p_ctrl,p_proj)
             # Update maxbond after successful step if needed outside the loop or at the end
@@ -39,8 +40,9 @@ function run_dw_t(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,seed_m::Int
             # Handle the error
             println("Caught an error: ", e)
             success = false
-            maxbond = CT.max_bond_dim(ct.mps) # Calculate maxbond only on error
             break
+        finally
+            maxbond[1+idx,:] = CT.all_bond_dim(ct.mps) # Calculate maxbond only on error
         end
         
     end
@@ -78,8 +80,8 @@ function parse_my_args()
 end
 
 function main()
-    println("Uses threads: ",BLAS.get_num_threads())
-    println("Uses backends: ",BLAS.get_config())
+    # println("Uses threads: ",BLAS.get_num_threads())
+    # println("Uses backends: ",BLAS.get_config())
     args = parse_my_args()
     results = run_dw_t(args["L"], args["p_ctrl"], args["p_proj"], args["seed_C"],args["seed_m"],args["maxdim"],args["cutoff"])
 
@@ -103,14 +105,15 @@ function main_interactive(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,see
     
     results = run_dw_t(L, p_ctrl, p_proj, seed_C,seed_m,maxdim,cutoff)
 
-    data_to_serialize = merge(results, Dict("args" => args))
+    elapsed_time = time() - start_time
+    println("p_ctrl: ", args["p_ctrl"], " p_proj: ", p_proj, " L: ", L, " seed_C: ", seed_C, " seed_m: ", seed_m)
+    println("Execution time: ",@sprintf("%.2f", elapsed_time), " s")
+    
+    data_to_serialize = merge(results, Dict("args" => args, "time" => elapsed_time))
     json_data = JSON.json(data_to_serialize)
     open(filename, "w") do f
         write(f, json_data)
     end
-    elapsed_time = time() - start_time
-    println("p_ctrl: ", args["p_ctrl"], " p_proj: ", p_proj, " L: ", L, " seed_C: ", seed_C, " seed_m: ", seed_m)
-    println("Execution time: ",@sprintf("%.2f", elapsed_time), " s")
 end
 
 if isdefined(Main, :PROGRAM_FILE) && abspath(PROGRAM_FILE) == @__FILE__

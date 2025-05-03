@@ -6,7 +6,7 @@ sys.path.append(dir_path)
 from tqdm import tqdm
 from plot_utils import *
 
-L=20
+L=40
 params_list=[
 ({'nu':0,'de':1,},
 {
@@ -14,11 +14,13 @@ params_list=[
 'sC':np.arange(0,500),
 'sm':[0],
 'L':[L],
-'maxdim':[2048,],
+'maxdim':[256,],
 # 'cutoff': [1e-10,1e-9,1e-8],
 # 'cutoff': [1e-5,1e-3,1e-1],
-'cutoff': [1e-15,1e-10, 1e-8, 1e-5,],
-'p_ctrl':np.linspace(0,1,21),
+'cutoff': [1e-1,1e-2,1e-3,1e-4,1e-5,1e-6,1e-8,1e-10,1e-15],
+'p_ctrl':np.linspace(0,0.95,20),
+# 'p_ctrl':np.arange(0,0.31,0.05),
+# 'p_ctrl':np.arange(0.35,1.01,0.05),
 }
 ),
 ]
@@ -41,7 +43,6 @@ for fixed_params,vary_params in params_list:
     )
 
 with open(f'params_CT_MPS_0_C_m_T_L{L}_series.txt','r') as f:
-    # lines=f.readlines()
     linewidth=100
     count=0
     total_string = []
@@ -53,6 +54,9 @@ with open(f'params_CT_MPS_0_C_m_T_L{L}_series.txt','r') as f:
             count=0
             total_string.append(string[1:])
             string= ''
+    # Add the remaining part if it exists
+    if string:
+        total_string.append(string[1:])
 
 with open(f'params_CT_MPS_0_C_m_T_L{L}_series.txt','w') as f:
     f.write('\n'.join(total_string))

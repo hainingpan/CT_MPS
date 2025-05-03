@@ -7,7 +7,7 @@ main_interactive(10, 0.1, 0.2, 1, 1)
 # To run the precompilation, use the following command:
 # export JULIA_DEPOT_PATH=~/julia_depot
 # export TMPDIR="/tmp" # (optional)
-# using PackageCompiler
+# using PackageCompiler; using Pkg; Pkg.activate("CT")
 # create_sysimage(
 #     [:CT, :ITensors, :ArgParse, :JSON, :MKL],
 #     sysimage_path="ct_with_wrapper.so",
