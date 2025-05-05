@@ -7,15 +7,15 @@ sys.path.append(dir_path)
 from tqdm import tqdm
 from plot_utils import *
 data_path='/home/jake/Data'
-# L_list=np.arange(20,61,10)
-L_list=np.arange(50,61,10)
+L_list=np.arange(20,61,10)
+# L_list=np.arange(50,61,10)
 # L_list=[50]
 p_ctrl_list=np.round(np.arange(0.4,0.6,0.01),2)
 cl_variance_p_ctrl_dict={}
 
 for L in L_list:
     for p_ctrl in p_ctrl_list:
-        params_list=[({'nu':0,'de':1,},{'p_ctrl':[p_ctrl],'p_proj':np.linspace(0.0,0.0,1),'s':np.arange(10000),'L':[L]}),]
+        params_list=[({'nu':0,'de':1,},{'p_ctrl':[p_ctrl],'p_proj':np.linspace(0.0,0.0,1),'s':np.arange(50),'L':[L]}),]
 
         for fixed_params,vary_params in params_list:
             data_MPS_0_DW_dict=generate_params(
@@ -48,7 +48,7 @@ for L in L_list:
             cl_variance_p_ctrl_dict[p_ctrl,L]=y
         
 
-        with open('cl_var_p_ctrl.pickle','wb') as f:
+        with open('cl_var_p_ctrl_s50.pickle','wb') as f:
             pickle.dump(cl_variance_p_ctrl_dict,f)
 
         del data_MPS_0_DW_dict, df_MPS_0_DW
