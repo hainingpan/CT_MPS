@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 export JULIAUP_NO_UPDATE_CHECK=1     # no “new version available” ping
-export JULIA_NUM_THREADS=4
-export OPENBLAS_NUM_THREADS=4 # Or MKL_NUM_THREADS=4 if using MKL
+# export JULIA_NUM_THREADS=4
+# export OPENBLAS_NUM_THREADS=4 # Or MKL_NUM_THREADS=4 if using MKL
 
 SYSIMG=run_CT_MPS_evo_generic.so; PROJ="CT"
 L=10; PCTRL=0.3; PPROJ=0.0; SC=0; SM=0; DM=256
