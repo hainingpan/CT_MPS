@@ -43,6 +43,7 @@ mutable struct CT_MPS
     adder::Vector{Union{MPO,Nothing}}
     dw::Vector{Vector{Union{MPO,Nothing}}}
     debug::Bool
+    simplified_U::Bool
 end
 
 function CT_MPS(
@@ -62,7 +63,8 @@ function CT_MPS(
     _maxdim0::Int=10,
     _cutoff::Float64=1e-10,
     _maxdim::Int=typemax(Int),
-    debug::Bool=false
+    debug::Bool=false,
+    simplified_U::Bool=false,
     )
     rng = MersenneTwister(seed)
     rng_vec = seed_vec === nothing ? rng : MersenneTwister(seed_vec)
@@ -72,7 +74,7 @@ function CT_MPS(
     mps=_initialize_vector(L,ancilla,x0,folded,qubit_site,ram_phy,phy_ram,phy_list,rng_vec,_cutoff,_maxdim0)
     adder=[adder_MPO(i1,xj,qubit_site,L,phy_ram,phy_list) for i1 in 1:L]
     dw=[[dw_MPO(i1,xj,qubit_site,L,phy_ram,phy_list,order) for i1 in 1:L] for order in 1:2]
-    ct = CT_MPS(L, store_vec, store_op, store_prob, seed, seed_vec, seed_C, seed_m, x0, xj, _eps, ancilla, folded, rng, rng_vec, rng_C, rng_m, qubit_site, phy_ram, ram_phy, phy_list, _maxdim0, _cutoff, _maxdim, mps, [],[],adder,dw,debug)
+    ct = CT_MPS(L, store_vec, store_op, store_prob, seed, seed_vec, seed_C, seed_m, x0, xj, _eps, ancilla, folded, rng, rng_vec, rng_C, rng_m, qubit_site, phy_ram, ram_phy, phy_list, _maxdim0, _cutoff, _maxdim, mps, [],[],adder,dw,debug,simplified_U)
     return ct
 end
 
@@ -183,7 +185,18 @@ function S!(ct::CT_MPS, i::Int, rng::Random.AbstractRNG; builtin=false)
     # mps[i] *= U
     # mps[i+1] *= U
     # return
-    U_4_mat=U(4,rng)
+    if ct.simplified_U
+        if i==ct.L
+            U_4_mat = U_simp(false, rng)
+            # println(i,false)
+        else
+            U_4_mat = U_simp(true, rng)
+            # println(i,true)
+        end
+    else
+        U_4_mat=U(4,rng)
+    end
+    
     U_4 = reshape(U_4_mat, 2, 2, 2, 2)
     if ct.ancilla == 0 || ct.ancilla ==1
         ram_idx = ct.phy_ram[[ct.phy_list[i], ct.phy_list[(i)%(ct.L)+1]]]
@@ -524,13 +537,78 @@ end
 """create Haar random unitary
 """
 function U(n, rng::Random.AbstractRNG=MersenneTwister(nothing))
-    z = randn(rng, 4, 4) + randn(rng, 4, 4) * im
+    z = randn(rng, n, n) + randn(rng, n, n) * im
     Q, R = qr(z)
     r_diag = diag(R)
     Lambda = Diagonal(r_diag ./ abs.(r_diag))
     Q *= Lambda
     return Q
 end
+
+CZ_mat = [1.0 0.0 0.0 0.0;
+0.0 1.0 0.0 0.0;
+0.0 0.0 1.0 0.0;
+0.0 0.0 0.0 -1.0+0im]
+
+"""create Rx gate"""
+function Rx(theta::Float64)
+    return [cos(theta / 2) -im*sin(theta / 2); 
+             -im*sin(theta / 2) cos(theta / 2)]
+end
+
+"""create Rz gate"""
+function Rz(theta::Float64)
+    return [exp(-im * theta / 2) 0; 
+            0 exp(im * theta / 2)]
+end
+
+"""create a simplified Haar random unitary.
+The unitary is defined as 
+---Rx(theta_1)---Rz(theta_2)---Rx(theta_3)---CZ---Rx(theta_4)---Rz(theta_5)---Rx(theta_6)---
+                                             |
+---Rx(theta_7)---Rz(theta_8)---Rx(theta_9)---CZ---Rx(theta_10)---Rz(theta_11)---Rx(theta_12)---
+If `CZ` is true, applied a CZ gate, otherwise, it is skipped.
+Here, 12 theta's are independently chosen as a random number in [0,2pi), and Rx and Rz are single qubit rotation gates along the x and z axes, respectively.
+For simplicity, we denote theta as theta[1], theta[2], ..., theta[6] on the top qubit, and theta[7], theta[8], ..., theta[12] on the bottom qubit. 
+"""
+function U_simp(CZ, rng::Random.AbstractRNG=MersenneTwister(nothing))
+    theta = rand(rng, 12) * 2 * pi
+
+    # Layer 1 (Left)
+    U1 = kron(Rx(theta[1]), Rx(theta[7]))
+    # Layer 2
+    U2 = kron(Rz(theta[2]), Rz(theta[8]))
+    # Layer 3
+    U3 = kron(Rx(theta[3]), Rx(theta[9]))
+    # Layer 4 (CZ)
+    U4 = CZ ? CZ_mat : Matrix{ComplexF64}(I, 4, 4)
+    # Layer 5
+    U5 = kron(Rx(theta[4]), Rx(theta[10]))
+    # Layer 6
+    U6 = kron(Rz(theta[5]), Rz(theta[11]))
+    # Layer 7 (Right)
+    U7 = kron(Rx(theta[6]), Rx(theta[12]))
+
+    # Combine layers (matrix multiplication from right to left)
+    U_final = U7 * U6 * U5 * U4 * U3 * U2 * U1
+    return U_final
+end
+
+"""physically same as U_simp, but use single qubit rotation SU(2) instead of the 
+three Euler angles decomposition. [The global phase does not matter here]
+---U_11---CZ---U_12
+          |
+---U_21---CZ---U_22
+"""
+function U2(CZ,rng::Random.AbstractRNG=MersenneTwister(nothing))
+    U_11=U(2,rng)
+    U_12=U(2,rng)
+    U_21=U(2,rng)
+    U_22=U(2,rng)
+    CZ_ = CZ ? CZ_mat : Matrix{ComplexF64}(I, 4, 4)
+    return kron(U_11,U_21)*CZ_*kron(U_12,U_22)
+end
+    
 """attach mps2 to mps1 at the last site. The returned mps is |mps1>|mps2>
 The physical index of mps2 should be given 
 """
@@ -1282,6 +1360,14 @@ function bipartite_mutual_information_self_average(ct::CT_MPS,n::Int;tolerance::
 
 end
 
+function frame_potential(mats; k::Int=2)
+    # mats is a Vector of matrices, length = sample
+    vecs = vec.(mats)            # flatten each matrix to a vector
+    flat = hcat(vecs...)'        # size(flat) = (sample, prod(size(mats[1])))
+    G    = flat * flat'          # Gram matrix
+    A    = abs.(G).^(2k)         # element-wise |G|^(2k)
+    return sum(A) / length(A)    # same as mean(A) without needing Statistics
+end
 
 function test_profiler()
     ct=CT_MPS(L=4,seed=1,folded=true,store_op=false,store_vec=false,ancilla=0,_maxdim0=6,xj=Set([0]),)
