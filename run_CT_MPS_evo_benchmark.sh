@@ -17,7 +17,13 @@ IFS=',' read -r L PCTRL PPROJ SC SM DM EPS <<< "$1"
 echo "Parameters: L=$L, PCTRL=$PCTRL, PPROJ=$PPROJ, SC=$SC, SM=$SM, DM=$DM, EPS=$EPS"
 
 # exactly your include+main_interactive call
-julia -q --banner=no --startup-file=no \
-  --sysimage "run_CT_MPS_evo_generic.so" \
-  --project="CT" \
-  -e "include(\"run_CT_MPS_evo.jl\"); main_interactive($L,$PCTRL,$PPROJ,$SC,$SM,$DM,$EPS)"
+# julia --sysimage "run_CT_MPS_evo_generic.so" -e  "using Pkg; Pkg.activate(\"CT\"); Pkg.instantiate(); include(\"run_CT_MPS_evo.jl\")"
+# julia -q --banner=no --startup-file=no \
+#   --sysimage "run_CT_MPS_evo_generic.so" \
+#   --project="CT" \
+#   -e "1+1"
+# julia -q --banner=no --startup-file=no \
+#   --sysimage "run_CT_MPS_evo_generic.so" \
+#   --project="CT" \
+#   -e "include(\"run_CT_MPS_evo.jl\"); main_interactive($L,$PCTRL,$PPROJ,$SC,$SM,$DM,$EPS)"
+
