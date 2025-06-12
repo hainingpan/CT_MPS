@@ -100,6 +100,7 @@ function main_interactive(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,see
     # println("Uses threads: ",BLAS.get_num_threads())
     # println("Uses backends: ",BLAS.get_config())
     # args = parse_my_args()
+    save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_evo_L$(L)/"
     args=Dict("L"=>L,"p_ctrl"=>p_ctrl,"p_proj"=>p_proj,"seed_C"=>seed_C,"seed_m"=>seed_m,"maxdim"=>maxdim,"cutoff"=>cutoff)
     filename = "MPS_(0,1)_L$(args["L"])_pctrl$(@sprintf("%.3f", args["p_ctrl"]))_pproj$(@sprintf("%.3f", args["p_proj"]))_sC$(args["seed_C"])_sm$(args["seed_m"])_maxdim$(args["maxdim"])_cutoff$(@sprintf("%.1e", args["cutoff"])).json"
     
@@ -111,7 +112,7 @@ function main_interactive(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,see
     
     data_to_serialize = merge(results, Dict("args" => args, "time" => elapsed_time))
     json_data = JSON.json(data_to_serialize)
-    open(filename, "w") do f
+    open(joinpath(save_dir, filename), "w") do f
         write(f, json_data)
     end
 end

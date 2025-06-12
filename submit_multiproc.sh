@@ -1,13 +1,13 @@
 #!/bin/bash
 #PBS -A ONRDC54450755
-#PBS -l walltime=0:59:00
+#PBS -l walltime=0:10:00
 #PBS -q debug
 #PBS -l select=1:ncpus=192:mpiprocs=1
 #PBS -N L12
 #PBS -m abe
 #PBS -M hnpanboa@gmail.com
 #PBS -r y
-#PBS -J 1-3
+#PBS -J 1-2
 # cd $WORKDIR/CT_MPS
 cd $HOME/CT_MPS
 

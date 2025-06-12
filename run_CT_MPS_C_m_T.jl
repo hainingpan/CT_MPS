@@ -24,7 +24,7 @@ function random_int(L,lower_bound,upper_bound,seed=nothing)
 end
 
 function run_dw_t(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,seed_m::Int)
-    ct=CT.CT_MPS(L=L,seed=0,seed_C=seed_C,seed_m=seed_m,folded=true,store_op=false,store_vec=false,ancilla=0,xj=Set([0]),x0=1//2^(L÷2+1))
+    ct=CT.CT_MPS(L=L,seed=0,seed_C=seed_C,seed_m=seed_m,folded=true,store_op=false,store_vec=false,ancilla=0,xj=Set([0]),x0=1//2^L)
     print("x0: ", ct.x0)
     # x0=1//2^(L÷2+1)   # at the midpoint, without label
     # x0=1//2^L     # at k=1, with label x01
@@ -109,10 +109,11 @@ function main_interactive(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,see
     # println("Uses threads: ",BLAS.get_num_threads())
     # println("Uses backends: ",BLAS.get_config())
     # args = parse_my_args()
-    save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_C_m_x01_T_L$(L)/"
+    save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_C_m_T_L$(L)/"
     # Create directory if it doesn't exist
     args=Dict("L"=>L,"p_ctrl"=>p_ctrl,"p_proj"=>p_proj,"seed_C"=>seed_C,"seed_m"=>seed_m)
-    filename = "MPS_(0,1)_L$(L)_pctrl$(@sprintf("%.3f", p_ctrl))_pproj$(@sprintf("%.3f", p_proj))_sC$(seed_C)_sm$(seed_m)_x01_DW_T.json"
+    filename = "MPS_(0,1)_L$(L)_pctrl$(@sprintf("%.3f", p_ctrl))_pproj$(@sprintf("%.3f", p_proj))_sC$(seed_C)_sm$(seed_m)_DW_T.json"
+    # filename = "MPS_(0,1)_L$(L)_pctrl$(@sprintf("%.3f", p_ctrl))_pproj$(@sprintf("%.3f", p_proj))_sC$(seed_C)_sm$(seed_m)_x01_DW_T.json"
     # filename = "MPS_(0,1)_L$(L)_pctrl$(@sprintf("%.3f", p_ctrl))_pproj$(@sprintf("%.3f", p_proj))_sC$(seed_C)_sm$(seed_m)_DW_T.json"
     # filename = "MPS_(0,1)_L$(L)_pctrl$(@sprintf("%.3f", p_ctrl))_pproj$(@sprintf("%.3f", p_proj))_sC$(seed_C)_sm$(seed_m)_O_T.json"
     
