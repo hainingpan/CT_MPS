@@ -14,6 +14,7 @@ L_list=np.arange(10,61,10)
 # p_ctrl_list=np.round(np.arange(0.4,0.6,0.01),2)
 p_ctrl_list=[0.5]
 cl_variance_p_ctrl_dict={}
+se_cl_variance_p_ctrl_dict={}
 
 for L in L_list:
     for p_ctrl in p_ctrl_list:
@@ -50,10 +51,12 @@ for L in L_list:
             mean_sq=data1.apply(np.mean).apply(lambda x : np.array(x)**2)
             y=sq_mean-mean_sq
             cl_variance_p_ctrl_dict[p_ctrl,L]=y
+            print(len(data1))
+            se_cl_variance_p_ctrl_dict[p_ctrl,L]=y*np.sqrt(2)/np.sqrt(len(data1))
         
 
-        with open('cl_var_p_ctrl_x01_s10000.pickle','wb') as f:
-            pickle.dump(cl_variance_p_ctrl_dict,f)
+        with open('cl_var_p_ctrl_x01.pickle','wb') as f:
+            pickle.dump([cl_variance_p_ctrl_dict,se_cl_variance_p_ctrl_dict],f)
 
         del data_MPS_0_DW_dict, df_MPS_0_DW
         gc.collect()

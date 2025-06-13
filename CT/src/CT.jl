@@ -179,7 +179,7 @@ end
 
 """ apply scrambler (Haar random unitary) to site (i,i+1) [physical index]
 """
-function S!(ct::CT_MPS, i::Int, rng::Random.AbstractRNG; builtin=false)
+function S!(ct::CT_MPS, i::Int, rng; builtin=false, theta=nothing)
     # U=ITensor(1.)
     # U *= randomUnitary(linkind(mps,i), linkind(mps,i+1))
     # mps[i] *= U
@@ -187,10 +187,10 @@ function S!(ct::CT_MPS, i::Int, rng::Random.AbstractRNG; builtin=false)
     # return
     if ct.simplified_U
         if i==ct.L
-            U_4_mat = U_simp(false, rng)
+            U_4_mat = U_simp(false, rng, theta)
             # println(i,false)
         else
-            U_4_mat = U_simp(true, rng)
+            U_4_mat = U_simp(true, rng, theta)
             # println(i,true)
         end
     else
@@ -326,7 +326,6 @@ function mutual_information(ct::CT_MPS,region1::Vector{Int},region2::Vector{Int}
 end
 
 """compute the mutual information from definition"""
-
 function mps_to_tensor(mps; array=false, vector=false, column_first=true)
     # psi = mps[1]
     # for i = 2:length(mps)
@@ -425,7 +424,51 @@ function update_history(ct::CT_MPS,op::Vector{Any},p_0::Float64)
         push!(ct.op_history,p_0)
     end
 end
+
+function random_control_fixed_circuit!(ct::CT_MPS, i::Int, circuit)
+    op_l=[]
+    p_0=-1.  # -1 for not applicable because of Bernoulli map
+    for cir in circuit
+        # control map
+        if cir[1] == "C"
+            if ct.xj in Set([Set([1 // 3, 2 // 3]),Set([0])])
+                p_0= inner_prob(ct, [0], [i])
+                if ct.debug
+                    println("Born prob for measuring 0 at phy site $i is $p_0")
+                end
+                n =  rand(ct.rng_m) < p_0 ?  0 : 1
+                control_map(ct, [n], [i])
+                push!(op_l,Dict("Type"=>"Control","Site"=>[i],"Outcome"=>[n]))
+            elseif ct.xj in [Set([1 // 3, -1 // 3])]
+                # p_00= ...
+                # p_01= ...
+                # p_10= ...
+                # p_11= ...
+                # n = ...
+                # control_map(ct, n, [i, i+1])
+                nothing
+            end
+            if ct.debug
+                print("Control with $(i)")
+            end
+            i=mod(((i-1) - 1),(ct.L)) + 1
+            if ct.debug
+                println("=> Next i is $(i)")
+            end
+        elseif cir[1] == "U"
+            # chaotic map
+            S!(ct, i,nothing; theta=cir[2:end])
+            push!(op_l,Dict("Type"=>"Bernoulli","Site"=>[i,((i+1) - 1)%(ct.L) + 1],"Outcome"=>nothing))
+            i=mod(((i+1) - 1),(ct.L) )+ 1
+        else
+            error("Unknown operation $(cir[1]) in circuit")
+        end
+        update_history(ct,op_l,p_0)
+    end
     
+    return i
+end
+
 
 """ compute the Born probability through the inner product at physical site list i (will convert to RAM site internally)
 """
@@ -564,34 +607,40 @@ end
 
 """create a simplified Haar random unitary.
 The unitary is defined as 
----Rx(theta_1)---Rz(theta_2)---Rx(theta_3)---CZ---Rx(theta_4)---Rz(theta_5)---Rx(theta_6)---
+---Rx(θ1)---Rz(θ2)---Rx(θ3)---CZ---Rx(θ7)---Rz(θ8)---Rx(θ9)---
                                              |
----Rx(theta_7)---Rz(theta_8)---Rx(theta_9)---CZ---Rx(theta_10)---Rz(theta_11)---Rx(theta_12)---
+---Rx(θ4)---Rz(θ5)---Rx(θ6)---CZ---Rx(θ10)---Rz(θ11)---Rx(θ12)---
 If `CZ` is true, applied a CZ gate, otherwise, it is skipped.
-Here, 12 theta's are independently chosen as a random number in [0,2pi), and Rx and Rz are single qubit rotation gates along the x and z axes, respectively.
-For simplicity, we denote theta as theta[1], theta[2], ..., theta[6] on the top qubit, and theta[7], theta[8], ..., theta[12] on the bottom qubit. 
+Here, 12 θ's are independently chosen as a random number in [0,2pi), and Rx and Rz are single qubit rotation gates along the x and z axes, respectively.
+For simplicity, we denote θ as θ[1], θ[2], ..., θ[6] on the top qubit, and θ[7], θ[8], ..., θ[12] on the bottom qubit. 
 """
-function U_simp(CZ, rng::Random.AbstractRNG=MersenneTwister(nothing))
-    theta = rand(rng, 12) * 2 * pi
+function U_simp(CZ, rng, 
+                theta::Vector{Any}=nothing)
+    if theta === nothing
+        theta = rand(rng, 12) * 2 * pi
+    end
+    # println("Random θ: ", theta)
 
     # Layer 1 (Left)
-    U1 = kron(Rx(theta[1]), Rx(theta[7]))
+    U1 = kron(Rx(theta[1]), Rx(theta[4]))
     # Layer 2
-    U2 = kron(Rz(theta[2]), Rz(theta[8]))
+    U2 = kron(Rz(theta[2]), Rz(theta[5]))
     # Layer 3
-    U3 = kron(Rx(theta[3]), Rx(theta[9]))
+    U3 = kron(Rx(theta[3]), Rx(theta[6]))
     # Layer 4 (CZ)
     U4 = CZ ? CZ_mat : Matrix{ComplexF64}(I, 4, 4)
     # Layer 5
-    U5 = kron(Rx(theta[4]), Rx(theta[10]))
+    U5 = kron(Rx(theta[7]), Rx(theta[10]))
     # Layer 6
-    U6 = kron(Rz(theta[5]), Rz(theta[11]))
+    U6 = kron(Rz(theta[8]), Rz(theta[11]))
     # Layer 7 (Right)
-    U7 = kron(Rx(theta[6]), Rx(theta[12]))
+    U7 = kron(Rx(theta[9]), Rx(theta[12]))
 
     # Combine layers (matrix multiplication from right to left)
     U_final = U7 * U6 * U5 * U4 * U3 * U2 * U1
-    return U_final
+
+    # Transpose is important to ensure that is consistent with Qiskit's convention (which should also be the state vector)
+    return collect(transpose(U_final))
 end
 
 """physically same as U_simp, but use single qubit rotation SU(2) instead of the 
