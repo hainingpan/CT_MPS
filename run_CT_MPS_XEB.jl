@@ -29,7 +29,7 @@ function main_interactive(L::Int,p_ctrl::Float64, seed_C::Int,seed_m::Int, data)
     ct = run(L,seed_m,data)
     # /p/work/hpan/CT_MPS/
     save_dir = "MPS_0-1_XEB_L$(L)/"
-    serialize(filename, ct)
+    serialize(joinpath(save_dir, filename), ct)
 
     elapsed_time = time() - start_time
     println(" L: ", L, "p_ctrl: ", p_ctrl,  " seed_C: ", seed_C, " seed_m: ", seed_m) 
