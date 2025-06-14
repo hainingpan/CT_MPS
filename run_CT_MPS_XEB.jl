@@ -27,11 +27,12 @@ function main_interactive(L::Int,p_ctrl::Float64, seed_C::Int,seed_m::Int, data)
     start_time = time()
     filename = "MPS_(0,1)_L$(L)_pctrl$(@sprintf("%.3f", p_ctrl))_sC$(seed_C)_sm$(seed_m)_XEB.jls"
     ct = run(L,seed_m,data)
-    # /p/work/hpan/CT_MPS/
-    save_dir = "MPS_0-1_XEB_L$(L)/"
+    
+    save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_XEB_L$(L)/"
+    # save_dir = "."
     serialize(joinpath(save_dir, filename), ct)
 
     elapsed_time = time() - start_time
-    println(" L: ", L, "p_ctrl: ", p_ctrl,  " seed_C: ", seed_C, " seed_m: ", seed_m) 
+    println(" L: ", L, "p_ctrl: ", p_ctrl,  " seed_C: ", seed_C, " seed_m: ", seed_m, " | Time taken: ", elapsed_time, " seconds") 
 end
 # L,p,seed,seed_m = key

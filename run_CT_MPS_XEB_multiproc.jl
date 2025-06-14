@@ -21,8 +21,10 @@ function main()
          parse(Int,     T[4]))  # seed_m
 
     # Load data once on main process
-    filename = "../IBM/MICPT_Data-selected/all_circuits.pkl"
+    filename = "/p/home/hpan/CT_MPS/all_circuits_L20.pkl"
+    println("Loading data from ", filename)
     data = Pickle.load(open(filename, "r"))
+    println("Data loaded from ", filename)
 
     # dispatch everything in parallel
     pmap(tuples) do tup
