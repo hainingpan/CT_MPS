@@ -1,13 +1,13 @@
 #!/bin/bash
 #PBS -A ONRDC54450755
-#PBS -l walltime=0:10:00
-#PBS -q debug
+#PBS -l walltime=1:00:00
+#PBS -q standard
 #PBS -l select=1:ncpus=192:mpiprocs=1
 #PBS -N L12
 #PBS -m abe
 #PBS -M hnpanboa@gmail.com
 #PBS -r y
-#PBS -J 1-2
+#PBS -J 1-100
 # cd $WORKDIR/CT_MPS
 cd $HOME/CT_MPS
 
@@ -18,7 +18,7 @@ NP=192
 export JULIA_NUM_THREADS=2
 export OPENBLAS_NUM_THREADS=$JULIA_NUM_THREADS
 
-PARAMS_FILE="params_CT_MPS_0_C_m_T_L12_series.txt"
+PARAMS_FILE="params_CT_MPS_0_C_m_T_L_series.txt"
 params=$(sed -n "${PBS_ARRAY_INDEX}p" "$PARAMS_FILE")
 echo -n "$params" | wc -c
 
