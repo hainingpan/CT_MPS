@@ -559,12 +559,12 @@ function mps_element(mps::MPS, x::String)
     return scalar(V)
 end
 
-function display_mps_element(ct::CT_MPS)
+function display_mps_element(ct::CT_MPS, mps::MPS)
     println(rpad("RAM",ct.L+ct.ancilla), "=>", "Physical")
     vec=zeros(Complex{Float64},2^(ct.L+ct.ancilla))
     for i in 1:2^(ct.L+ct.ancilla)
         bitstring=lpad(string(i-1,base=2),ct.L+ct.ancilla,"0")
-        matel=CT.mps_element(ct.mps,bitstring)
+        matel=CT.mps_element(mps,bitstring)
         println(bitstring, "=>", bitstring[ct.phy_ram],": ",matel)
         vec[parse(Int,bitstring[ct.phy_ram];base=2)+1]=matel
     end
@@ -1237,16 +1237,34 @@ function get_total_coherence_dense_0(ct::CT_MPS)
     return real(sum((abs.(prod(ct.mps))))^2-1)
 end
 
-"""return the element-wise product of two MPS mps1, and mp2"""
-function elementwise_product(mps1::MPS, mps2::MPS;cutoff::Float64=1e-10,maxdim::Int=25,method::String="densitymatrix")
-    site_idx=siteinds(mps1)
-    mpo1=MPO(site_idx)
-    for i in 1:length(mps1)
-        mpo1[i]=mps1[i]* delta(site_idx[i],prime(site_idx[i],1),prime(site_idx[i],2))
+# """return the element-wise product of two MPS mps1, and mp2
+# OBSOLETE"""
+# function elementwise_product(mps1::MPS, mps2::MPS;cutoff::Float64=1e-10,maxdim::Int=25,method::String="densitymatrix")
+#     site_idx=siteinds(mps1)
+#     mpo1=MPO(site_idx)
+#     for i in 1:length(mps1)
+#         mpo1[i]=mps1[i]* delta(site_idx[i],prime(site_idx[i],1),prime(site_idx[i],2))
+#     end
+#     mps_prod=apply(mpo1,prime(mps2;tags="Site"),method=method,cutoff=cutoff,maxdim=maxdim)
+#     # truncate!(mps_prod, cutoff=cutoff)
+#     return noprime!(mps_prod)
+# end
+
+"""Assume that mps1 and mps2 share different site indices, if they are the same, prime mps2
+The product MPS will reuse the site indices of mps1"""
+function elementwise_product_(mps1::MPS, mps2::MPS; cutoff::Float64=1e-10)
+    site_idx1=siteinds(mps1)
+    site_idx2=siteinds(mps2)
+    if site_idx1 == site_idx2
+        mps2 = prime(mps2)
+        site_idx2=siteinds(mps2)
     end
-    mps_prod=apply(mpo1,prime(mps2;tags="Site"),method=method,cutoff=cutoff,maxdim=maxdim)
-    # truncate!(mps_prod, cutoff=cutoff)
-    return noprime!(mps_prod)
+    prod_mps = MPS((site_idx1))
+    for i in 1:length(mps1)
+        prod_mps[i] = mps1[i] * delta(site_idx1[i], site_idx2[i], prime(site_idx1[i], 2)) * mps2[i]
+    end
+    truncate!(prod_mps, cutoff=cutoff)
+    return noprime!(prod_mps)
 end
 
 function all_one_mps(sites::Vector{Index{Int64}})
@@ -1426,7 +1444,7 @@ function test_profiler()
     # show(to)
 end
 
-greet() = print("Hello World! How are 11?")
+greet() = print("Hello World! How are 121?")
 
 
 end # module CT
