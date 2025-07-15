@@ -98,8 +98,8 @@ z = ZipFile.Reader( path);
 file_index = create_zip_index(z);
 
 results = Matrix{Float64}(undef, length(pctrl_list), length(sC_list))
-@showprogress for (i,pctrl) in enumerate(pctrl_list), (j,sC) in enumerate(sC_list)
-    # @printf("Processing pctrl=%.3f, sC=%d\n", pctrl, sC)
+params = [(i,j,pctrl,sC) for (i,pctrl) in enumerate(pctrl_list) for (j,sC) in enumerate(sC_list)]
+@showprogress for (i,j,pctrl,sC) in params
     results[i,j] = calc_(L, pctrl, sC)
 end
 
