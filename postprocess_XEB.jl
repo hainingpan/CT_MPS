@@ -22,6 +22,10 @@ function parse_commandline()
             help = "System size L"
             arg_type = Int
             required = true
+        "sC_value"
+            help = "sC parameter value"
+            arg_type = Int
+            required = true
         "--sample-size"
             help = "Monte Carlo sample size"
             arg_type = Int
@@ -78,7 +82,6 @@ end
 function calc_MC(L::Int,pctrl::Float64,sC::Int,z,file_index;sm_max=500, sample_size::Int=10000, seed::Int=0)
     counter = Dict{Int, Int}()
     for sm in 0:sm_max-1
-        @printf("Processing sm=%d\n", sm)
         _ = monte_carlo_abs2(L,pctrl,sC,sm,z,file_index;sample_size=sample_size, seed=seed, counter=counter)
     end
     vec = collect(values(counter))
@@ -148,16 +151,12 @@ function main()
     
     p_value = args["p_value"]
     L = args["L_value"]
+    sC = args["sC_value"]
     sample_size = args["sample-size"]
     seed = args["seed"]
     sm_max = args["sm-max"]
     
-    println("Running with parameters:")
-    println("  p_value: $(p_value)")
-    println("  L: $(L)")
-    println("  sample_size: $(sample_size)")
-    println("  seed: $(seed)")
-    println("  sm_max: $(sm_max)")
+    println("Parameters: p=$(p_value), L=$(L), sC=$(sC), samples=$(sample_size), seed=$(seed), sm_max=$(sm_max)")
     
     start_time = time()
     
@@ -166,25 +165,18 @@ function main()
     z = ZipFile.Reader(path)
     file_index = create_zip_index(z)
     
-    # pctrl_list = [.2,.25,.3,.35,.4,.45,.5,.55,.6,.65,.7,.75,.8,.85]
-    # sC_list = 1:50
-    pctrl_list = [p_value]
-    sC_list = 1:49
+    # Calculate single result
+    result = calc_MC(L, p_value, sC, z, file_index, sample_size=sample_size, sm_max=sm_max)
     
-    results = Matrix{Float64}(undef, length(pctrl_list), length(sC_list))
-    params = [(i,j,pctrl,sC) for (i,pctrl) in enumerate(pctrl_list) for (j,sC) in enumerate(sC_list)]
-    for (i,j,pctrl,sC) in params
-        # results[i,j] = calc_(L, pctrl, sC, z, file_index)
-        results[i,j] = calc_MC(L, pctrl, sC, z, file_index, sample_size=sample_size, sm_max=sm_max)
-    end
+    save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_XEB_L$(L)/"
+    filename = "XEB_q_L$(L)_p$(@sprintf("%.3f", p_value))_sC$(sC)_samples$(sample_size)_seed$(seed)_smmax$(sm_max).json"
     
-    open("XEB_q_L$(L)_p$(p_value)_samples$(sample_size)_seed$(seed)_smmax$(sm_max).json", "w") do io
+    open(joinpath(save_dir, filename), "w") do io
         write(io, JSON.json(Dict(
-            "results"=>results, 
-            "pctrl_list"=>pctrl_list, 
-            "sC_list"=>sC_list, 
+            "result"=>result, 
             "L"=>L, 
             "p"=>p_value,
+            "sC"=>sC,
             "sample_size"=>sample_size,
             "seed"=>seed,
             "sm_max"=>sm_max
@@ -193,6 +185,40 @@ function main()
     
     execution_time = time() - start_time
     println(@sprintf("Total execution time: %.2f seconds (%.2f minutes)", execution_time, execution_time/60))
+end
+
+function main_interactive(p_value::Float64, L::Int, sC::Int; sample_size::Int=10000, seed::Int=0, sm_max::Int=500)
+    println("Parameters: p=$(p_value), L=$(L), sC=$(sC), samples=$(sample_size), seed=$(seed), sm_max=$(sm_max)")
+    
+    start_time = time()
+    
+    directory = "/p/work/hpan/CT_MPS/"
+    path = joinpath(directory, "MPS_0-1_XEB_L$(L).zip")
+    z = ZipFile.Reader(path)
+    file_index = create_zip_index(z)
+    
+    # Calculate single result
+    result = calc_MC(L, p_value, sC, z, file_index, sample_size=sample_size, sm_max=sm_max)
+    
+    save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_XEB_L$(L)/"
+    filename = "XEB_q_L$(L)_p$(@sprintf("%.3f", p_value))_sC$(sC)_samples$(sample_size)_seed$(seed)_smmax$(sm_max).json"
+    
+    open(joinpath(save_dir, filename), "w") do io
+        write(io, JSON.json(Dict(
+            "result"=>result, 
+            "L"=>L, 
+            "p"=>p_value,
+            "sC"=>sC,
+            "sample_size"=>sample_size,
+            "seed"=>seed,
+            "sm_max"=>sm_max
+        )))
+    end
+    
+    execution_time = time() - start_time
+    println(@sprintf("Total execution time: %.2f seconds (%.2f minutes)", execution_time, execution_time/60))
+    
+    return result
 end
 
 # Run main function if script is executed directly
