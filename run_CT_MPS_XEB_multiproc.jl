@@ -7,12 +7,16 @@ function parse_my_args()
     s = ArgParseSettings()
     @add_arg_table! s begin
         "--params"; arg_type=String
+        "--filename"; arg_type=String; default="/p/home/hpan/CT_MPS/all_circuits_L20.pkl"
     end
     return parse_args(s)
 end
 
 function main()
-    raw    = parse_my_args()["params"]
+    args = parse_my_args()
+    raw = args["params"]
+    filename = args["filename"]
+    
     parts  = split(raw, ",")
     tuples = collect(Iterators.partition(parts,4)) .|> T ->
         (parse(Int,     T[1]),  # L
@@ -21,10 +25,11 @@ function main()
          parse(Int,     T[4]))  # seed_m
 
     # Load data once on main process
-    filename = "/p/home/hpan/CT_MPS/all_circuits_L20.pkl"
     println("Loading data from ", filename)
+    flush(stdout)
     data = Pickle.load(open(filename, "r"))
     println("Data loaded from ", filename)
+    flush(stdout)
 
     # dispatch everything in parallel
     pmap(tuples) do tup

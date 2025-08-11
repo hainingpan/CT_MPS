@@ -1240,16 +1240,90 @@ function get_total_coherence_dense_0(ct::CT_MPS)
     return real(sum((abs.(prod(ct.mps))))^2-1)
 end
 
-"""return the element-wise product of two MPS mps1, and mp2"""
-function elementwise_product(mps1::MPS, mps2::MPS;cutoff::Float64=1e-10,maxdim::Int=25,method::String="densitymatrix")
-    site_idx=siteinds(mps1)
-    mpo1=MPO(site_idx)
-    for i in 1:length(mps1)
-        mpo1[i]=mps1[i]* delta(site_idx[i],prime(site_idx[i],1),prime(site_idx[i],2))
+# """return the element-wise product of two MPS mps1, and mp2
+# OBSOLETE"""
+# function elementwise_product(mps1::MPS, mps2::MPS;cutoff::Float64=1e-10,maxdim::Int=25,method::String="densitymatrix")
+#     site_idx=siteinds(mps1)
+#     mpo1=MPO(site_idx)
+#     for i in 1:length(mps1)
+#         mpo1[i]=mps1[i]* delta(site_idx[i],prime(site_idx[i],1),prime(site_idx[i],2))
+#     end
+#     mps_prod=apply(mpo1,prime(mps2;tags="Site"),method=method,cutoff=cutoff,maxdim=maxdim)
+#     # truncate!(mps_prod, cutoff=cutoff)
+#     return noprime!(mps_prod)
+# end
+
+function replaceinds_mps(ψfrom::MPS, ψto::MPS)
+    N = length(ψfrom)
+    @assert N == length(ψto) "MPS lengths do not match: $(N) ≠ $(length(ψto))"
+
+    for j in 1:N
+        s1 = siteinds(ψfrom, j)
+        s2 = siteinds(ψto, j)
+        @assert length(s1) == length(s2) "Mismatch in number of site indices at site $j"
+        for (i1, i2) in zip(s1, s2)
+            @assert dim(i1) == dim(i2) "Mismatch in dimension at site $j: dim($(i1)) ≠ dim($(i2))"
+        end
     end
-    mps_prod=apply(mpo1,prime(mps2;tags="Site"),method=method,cutoff=cutoff,maxdim=maxdim)
-    # truncate!(mps_prod, cutoff=cutoff)
-    return noprime!(mps_prod)
+
+    new_ψ = MPS(N)
+    for j in 1:N
+        new_ψ[j] = replaceinds(ψfrom[j], siteinds(ψfrom, j) => siteinds(ψto, j))
+    end
+    return new_ψ
+end
+function sum_mps_tree(ψ_list::Vector{<:MPS};
+                       maxdim::Union{Nothing, Int}=nothing,
+                       cutoff::Real=1e-10,
+                       orthogonalize::Bool=true)
+
+    N = length(ψ_list)
+    @assert N > 0 "MPS list is empty"
+
+    if N == 1
+        return copy(ψ_list[1])
+    elseif N == 2
+        ψ1, ψ2 = ψ_list[1], ψ_list[2]
+        ψ2_aligned = replaceinds_mps(ψ2, ψ1)
+        ψ = ψ1 + ψ2_aligned
+        if orthogonalize
+            orthogonalize!(ψ, 1)
+        end
+        truncate!(ψ; maxdim=maxdim, cutoff=cutoff)
+        return ψ
+    else
+        mid = N ÷ 2
+        left = sum_mps_tree(ψ_list[1:mid]; maxdim=maxdim, cutoff=cutoff, orthogonalize=orthogonalize)
+        right = sum_mps_tree(ψ_list[mid+1:end]; maxdim=maxdim, cutoff=cutoff, orthogonalize=orthogonalize)
+        right_aligned = replaceinds_mps(right, left)
+        ψ = left + right_aligned
+        if orthogonalize
+            orthogonalize!(ψ, 1)
+        end
+        truncate!(ψ; maxdim=maxdim, cutoff=cutoff)
+        return ψ
+    end
+end
+
+
+"""Assume that mps1 and mps2 share different site indices, if they are the same, prime mps2
+The product MPS will reuse the site indices of mps1"""
+function elementwise_product(mps1::MPS, mps2::MPS; cutoff::Float64=1e-10, orthogonalize::Bool=true)
+    site_idx1=siteinds(mps1)
+    site_idx2=siteinds(mps2)
+    if site_idx1 == site_idx2
+        mps2 = prime(mps2)
+        site_idx2=siteinds(mps2)
+    end
+    prod_mps = MPS(length(site_idx1))
+    for i in 1:length(mps1)
+        prod_mps[i] = mps1[i] * delta(site_idx1[i], site_idx2[i], prime(site_idx1[i], 2)) * mps2[i]
+    end
+    if orthogonalize
+        orthogonalize!(prod_mps, 1)
+    end
+    truncate!(prod_mps, cutoff=cutoff)
+    return noprime!(prod_mps)
 end
 
 function all_one_mps(sites::Vector{Index{Int64}})
@@ -1429,7 +1503,7 @@ function test_profiler()
     # show(to)
 end
 
-greet() = print("Hello World! How are 11?")
+greet() = print("Hello World! How are 121?")
 
 
 end # module CT
