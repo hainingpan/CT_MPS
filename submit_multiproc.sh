@@ -1,13 +1,13 @@
 #!/bin/bash
 #PBS -A ONRDC54450755
-#PBS -l walltime=1:00:00
-#PBS -q standard
+#PBS -l walltime=4:00:00
+#PBS -q background
 #PBS -l select=1:ncpus=192:mpiprocs=1
-#PBS -N L12
+#PBS -N L30
 #PBS -m abe
 #PBS -M hnpanboa@gmail.com
 #PBS -r y
-#PBS -J 1-100
+#PBS -J 1-2660
 # cd $WORKDIR/CT_MPS
 cd $HOME/CT_MPS
 
@@ -18,7 +18,7 @@ NP=192
 export JULIA_NUM_THREADS=2
 export OPENBLAS_NUM_THREADS=$JULIA_NUM_THREADS
 
-PARAMS_FILE="params_CT_MPS_0_C_m_T_L_series.txt"
+PARAMS_FILE="params_CT_MPS_0_C_m_T_L30_series.txt"
 params=$(sed -n "${PBS_ARRAY_INDEX}p" "$PARAMS_FILE")
 echo -n "$params" | wc -c
 
@@ -26,10 +26,11 @@ export JULIA_DEPOT_PATH=~/julia_depot
 export APPTAINER_BIND="/p/work/hpan"
 
 
-singularity exec $HOME/julia_itensors_improved.sif \
+singularity exec $HOME/julia_itensors_improved_1_11_6.sif \
   julia \
-    --sysimage ct_with_wrapper.so \
+    --sysimage C_m_T.jl.so \
     --project=./CT \
     -p $((NP / JULIA_NUM_THREADS)) \
     run_CT_MPS_C_m_T_multiproc.jl \
     --params "$params"
+

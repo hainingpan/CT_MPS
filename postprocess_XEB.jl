@@ -26,6 +26,10 @@ function parse_commandline()
             help = "sC parameter value"
             arg_type = Int
             required = true
+        "sm_value"
+            help = "sm parameter value"
+            arg_type = Int
+            required = true
         "--sample-size"
             help = "Monte Carlo sample size"
             arg_type = Int
@@ -34,38 +38,27 @@ function parse_commandline()
             help = "Random seed"
             arg_type = Int
             default = 0
-        "--sm-max"
-            help = "Maximum sm value"
-            arg_type = Int
-            default = 500
     end
     
     return parse_args(s)
 end
 
-function calc_(L,pctrl,sC,z,file_index;sm_max=500)
-    data_abs2_list = MPS[];
-    for sm in 0:sm_max
-        filename = @sprintf("MPS_(0,1)_L%d_pctrl%.3f_sC%d_sm%d_XEB.jls", L, pctrl, sC, sm)
-        if haskey(file_index, filename)
-            data = deserialize(z.files[(file_index[filename])])
-            data_abs2 = CT.elementwise_product(data.mps, conj(data.mps); cutoff=1e-5)
-            push!(data_abs2_list, data_abs2)
-        end
-    end
-    if isempty(data_abs2_list)
-        println("No data found for pctrl=$(pctrl), sC=$(sC)")
-        return NaN
+function calc_(L,pctrl,sC,sm,z,file_index)
+    filename = @sprintf("MPS_(0,1)_L%d_pctrl%.3f_sC%d_sm%d_XEB.jls", L, pctrl, sC, sm)
+    if haskey(file_index, filename)
+        data = deserialize(z.files[(file_index[filename])])
+        data_abs2 = CT.elementwise_product(data.mps, conj(data.mps); cutoff=1e-5)
+        return abs(inner(data_abs2, conj(data_abs2)))
     else
-        data_abs2_mean_list = CT.sum_mps_tree(data_abs2_list)/length(data_abs2_list)
-        return abs(inner(data_abs2_mean_list ,conj(data_abs2_mean_list)))
+        println("No data found for pctrl=$(pctrl), sC=$(sC), sm=$(sm)")
+        return NaN
     end
 end
 
-function monte_carlo_abs2(L::Int,pctrl::Float64,sC::Int,sm::Int,z,file_index;sample_size::Int=10000, seed::Int=0, counter::Dict{Int, Int}=Dict{Int, Int}())
+function monte_carlo_abs2(L::Int,pctrl::Float64,sC::Int,sm::Int,z,file_index;sample_size::Int=10000, seed::Int=0, counter::Dict{BigInt, Int}=Dict{BigInt, Int}())
     rng = MersenneTwister(seed)
     filename = @sprintf("MPS_(0,1)_L%d_pctrl%.3f_sC%d_sm%d_XEB.jls", L, pctrl, sC, sm)
-    @printf("Processing file: %s\n", filename)
+    # @printf("Processing file: %s\n", filename)
     
     if haskey(file_index, filename)
         data = deserialize(z.files[(file_index[filename])])
@@ -79,13 +72,10 @@ function monte_carlo_abs2(L::Int,pctrl::Float64,sC::Int,sm::Int,z,file_index;sam
     return counter
 end
 
-function calc_MC(L::Int,pctrl::Float64,sC::Int,z,file_index;sm_max=500, sample_size::Int=10000, seed::Int=0)
-    counter = Dict{Int, Int}()
-    for sm in 0:sm_max-1
-        _ = monte_carlo_abs2(L,pctrl,sC,sm,z,file_index;sample_size=sample_size, seed=seed, counter=counter)
-    end
-    vec = collect(values(counter))
-    return sum((vec/sum(vec)).^2)
+function calc_MC(L::Int,pctrl::Float64,sC::Int,sm::Int,z,file_index;sample_size::Int=10000, seed::Int=0)
+    counter = Dict{BigInt, Int}()
+    _ = monte_carlo_abs2(L,pctrl,sC,sm,z,file_index;sample_size=sample_size, seed=seed, counter=counter)
+    return counter
 end
 
 function create_zip_index(zip_reader)
@@ -152,11 +142,11 @@ function main()
     p_value = args["p_value"]
     L = args["L_value"]
     sC = args["sC_value"]
+    sm = args["sm_value"]
     sample_size = args["sample-size"]
     seed = args["seed"]
-    sm_max = args["sm-max"]
     
-    println("Parameters: p=$(p_value), L=$(L), sC=$(sC), samples=$(sample_size), seed=$(seed), sm_max=$(sm_max)")
+    print("Parameters: p=$(p_value), L=$(L), sC=$(sC), sm=$(sm), samples=$(sample_size), seed=$(seed)  |")
     
     start_time = time()
     
@@ -166,20 +156,22 @@ function main()
     file_index = create_zip_index(z)
     
     # Calculate single result
-    result = calc_MC(L, p_value, sC, z, file_index, sample_size=sample_size, sm_max=sm_max)
+    result = calc_MC(L, p_value, sC, sm, z, file_index, sample_size=sample_size)
     
     save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_XEB_L$(L)/"
-    filename = "XEB_q_L$(L)_p$(@sprintf("%.3f", p_value))_sC$(sC)_samples$(sample_size)_seed$(seed)_smmax$(sm_max).json"
+    filename = "XEB_q_L$(L)_p$(@sprintf("%.3f", p_value))_sC$(sC)_sm$(sm)_samples$(sample_size)_seed$(seed).json"
     
     open(joinpath(save_dir, filename), "w") do io
         write(io, JSON.json(Dict(
-            "result"=>result, 
-            "L"=>L, 
-            "p"=>p_value,
-            "sC"=>sC,
-            "sample_size"=>sample_size,
-            "seed"=>seed,
-            "sm_max"=>sm_max
+            "counter"=>result,
+            "args"=>Dict(
+                "L"=>L, 
+                "p"=>p_value,
+                "sC"=>sC,
+                "sm"=>sm,
+                "sample_size"=>sample_size,
+                "seed"=>seed
+            )
         )))
     end
     
@@ -187,8 +179,8 @@ function main()
     println(@sprintf("Total execution time: %.2f seconds (%.2f minutes)", execution_time, execution_time/60))
 end
 
-function main_interactive(p_value::Float64, L::Int, sC::Int; sample_size::Int=10000, seed::Int=0, sm_max::Int=500)
-    println("Parameters: p=$(p_value), L=$(L), sC=$(sC), samples=$(sample_size), seed=$(seed), sm_max=$(sm_max)")
+function main_interactive(p_value::Float64, L::Int, sC::Int, sm::Int; sample_size::Int=10000, seed::Int=0)
+    println("Parameters: p=$(p_value), L=$(L), sC=$(sC), sm=$(sm), samples=$(sample_size), seed=$(seed)")
     
     start_time = time()
     
@@ -198,20 +190,22 @@ function main_interactive(p_value::Float64, L::Int, sC::Int; sample_size::Int=10
     file_index = create_zip_index(z)
     
     # Calculate single result
-    result = calc_MC(L, p_value, sC, z, file_index, sample_size=sample_size, sm_max=sm_max)
+    result = calc_MC(L, p_value, sC, sm, z, file_index, sample_size=sample_size)
     
-    save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_XEB_L$(L)/"
-    filename = "XEB_q_L$(L)_p$(@sprintf("%.3f", p_value))_sC$(sC)_samples$(sample_size)_seed$(seed)_smmax$(sm_max).json"
+    save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_XEB_L$(L)_post/"
+    filename = "XEB_q_L$(L)_p$(@sprintf("%.3f", p_value))_sC$(sC)_sm$(sm)_samples$(sample_size)_seed$(seed).json"
     
     open(joinpath(save_dir, filename), "w") do io
         write(io, JSON.json(Dict(
-            "result"=>result, 
-            "L"=>L, 
-            "p"=>p_value,
-            "sC"=>sC,
-            "sample_size"=>sample_size,
-            "seed"=>seed,
-            "sm_max"=>sm_max
+            "counter"=>result,
+            "args"=>Dict(
+                "L"=>L, 
+                "p"=>p_value,
+                "sC"=>sC,
+                "sm"=>sm,
+                "sample_size"=>sample_size,
+                "seed"=>seed
+            )
         )))
     end
     

@@ -1,7 +1,7 @@
 # precompile_postprocess_XEB.jl
 using CT, ArgParse
 include("postprocess_XEB.jl")
-main_interactive(0.2, 10, 5, sample_size=1, seed=0)
+main_interactive(0.2, 10, 5, 3, sample_size=1, seed=0)
 
 # Dummy calls to compile the functions
 
@@ -19,4 +19,4 @@ main_interactive(0.2, 10, 5, sample_size=1, seed=0)
 #       --project=./CT \
 #       -p 2 \
 #       postprocess_XEB_multiproc.jl \
-#       --params "0.2,10,5,1,0,500,0.2,10,6,1,0,500"
+#       --params "0.2,10,5,3,1,0,0.2,10,6,4,1,0"
