@@ -559,16 +559,19 @@ function mps_element(mps::MPS, x::String)
     return scalar(V)
 end
 
-function display_mps_element(ct::CT_MPS)
+function display_mps_element(ct::CT_MPS; mps::Union{MPS,Nothing}=nothing)
+    mps_to_use = mps === nothing ? ct.mps : mps
     println(rpad("RAM",ct.L+ct.ancilla), "=>", "Physical")
+    vec_ram = zeros(Complex{Float64},2^(ct.L+ct.ancilla))
     vec=zeros(Complex{Float64},2^(ct.L+ct.ancilla))
     for i in 1:2^(ct.L+ct.ancilla)
         bitstring=lpad(string(i-1,base=2),ct.L+ct.ancilla,"0")
-        matel=CT.mps_element(ct.mps,bitstring)
+        matel=mps_element(mps_to_use,bitstring)
         println(bitstring, "=>", bitstring[ct.phy_ram],": ",matel)
+        vec_ram[parse(Int,bitstring;base=2)+1]=matel
         vec[parse(Int,bitstring[ct.phy_ram];base=2)+1]=matel
     end
-    return vec
+    return vec_ram, vec
 end
 
 function dec2bin(x::Real, L::Int)
