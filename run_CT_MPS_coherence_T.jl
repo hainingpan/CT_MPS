@@ -1,10 +1,10 @@
+using Pkg
+Pkg.activate("CT")
 using ITensors
 using Random
 using LinearAlgebra
 using MKL
-using Pkg
 using JSON
-Pkg.activate("CT")
 using CT
 using Printf
 
@@ -94,7 +94,8 @@ end
 
 function main_interactive(L::Int,p_ctrl::Float64,p_proj::Float64,maxbonddim::Int,t,seed::Int)
     start_time = time()
-    save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_coherence_T_L$(L)/"
+    # save_dir = "/p/work/hpan/CT_MPS/MPS_0-1_coherence_T_L$(L)/"
+    save_dir = "./MPS_0-1_coherence_T_L$(L)/"
     args=Dict("L"=>L,"p_ctrl"=>p_ctrl,"p_proj"=>p_proj,"maxbonddim"=>maxbonddim,"t"=>t,"s"=>seed)
 
     filename = "MPS_(0,1)_L$(args["L"])_pctrl$(@sprintf("%.3f", args["p_ctrl"]))_pproj$(@sprintf("%.3f", args["p_proj"]))_mb$(args["maxbonddim"])_t$(@sprintf("%.1f", args["t"]))_s$(args["s"])_coherence_T.json"
