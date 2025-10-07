@@ -1,10 +1,10 @@
+using Pkg
+Pkg.activate("CT")
+using JSON
 using ITensors
 using Random
 using LinearAlgebra
 using MKL
-using Pkg
-using JSON
-Pkg.activate("CT")
 using CT
 using Printf
 
@@ -24,7 +24,7 @@ function random_int(L,lower_bound,upper_bound,seed=nothing)
 end
 
 function run_Oi_t(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,seed_m::Int)
-    ct=CT.CT_MPS(L=L,seed=0,seed_C=seed_C,seed_m=seed_m,folded=true,store_op=true,store_vec=false,ancilla=0,xj=Set([0]),x0=(2^5+2^2)//2^L)
+    ct=CT.CT_MPS(L=L,seed=0,seed_C=seed_C,seed_m=seed_m,folded=true,store_op=true,store_vec=false,ancilla=0,xj=Set([0]),x0=1//2^(L))
     print("x0: ", ct.x0)
 
     # x0=1//2^(L÷2+1)   # at the midpoint, without label
@@ -32,7 +32,9 @@ function run_Oi_t(L::Int,p_ctrl::Float64,p_proj::Float64,seed_C::Int,seed_m::Int
     # x0=random_int(L,2^(L-1),2^L - 1, seed)//2^L # at k=L, with label x12
     # x0=random_int(seed,0,2^L-1)//2^L # at random k, with label x00, here seed needs a redefinition, maybe can be seed_v
     i=L
-    tf=(ct.ancilla ==0) ? 2*ct.L^2 : div(ct.L^2,2)
+    # tf=(ct.ancilla ==0) ? 2*ct.L^2 : div(ct.L^2,2)
+    tf=10*ct.L
+
     # Oi_list=zeros(tf+1,2)
     # Oi_list[1,:]=collect(CT.dw(ct,1))
     # O_list=zeros(tf+1,2)

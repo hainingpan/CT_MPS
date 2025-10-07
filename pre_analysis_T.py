@@ -6,12 +6,13 @@ sys.path.append(dir_path)
 from tqdm import tqdm
 from plot_utils import *
 
-L=30
+L=50
 
 params_list=[
 ({'nu':0,'de':1,},
 {
-'p_ctrl':[0.35],
+# 'p_ctrl':[0.35],
+'p_ctrl':[0.5],
 # 'p_ctrl':[.47,.49,.51,.53],
 # 'p_ctrl':[.4,.45,.5,.55,.6],
 # 'p_ctrl':[0.4,0.45,0.47,0.49,0.5,0.51,0.53,0.55,0.6],
