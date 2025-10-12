@@ -31,7 +31,15 @@ function run_dw_t(L::Int,p_ctrl::Float64,p_proj::Float64,maxbonddim::Int,t,seed:
         i=CT.random_control!(ct,i,p_ctrl,p_proj)
         # temporal
         # coh_mat[idx+1,:,:], fdw[idx+1,:] = CT.get_coherence_matrix(ct,i)
-        coh_mat[idx], ranks[idx], errors[idx] = CT.get_total_coherence_0(ct,i,maxbonddim=maxbonddim)
+        if L <=20
+            coh_mat[idx], ranks[idx], errors[idx] = CT.get_total_coherence_0(ct,i,maxbonddim=maxbonddim)
+        else
+            if mod1(idx,L) == 1 || idx <= 60
+                coh_mat[idx], ranks[idx], errors[idx] = CT.get_total_coherence_0(ct,i,maxbonddim=maxbonddim)
+            else
+                coh_mat[idx], ranks[idx], errors[idx] = NaN, NaN, NaN
+            end
+        end
     end
     # single
     # return ct
