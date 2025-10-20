@@ -6,7 +6,7 @@ import rqc
 import numpy as np
 from tqdm import tqdm
 
-L=30
+L=40
 mb = {10:120, 20:200, 30:1200, 40: 4000}
 params_list=[
 ({'nu':0,'de':1,'mb':mb[L],'t':1},
@@ -31,7 +31,7 @@ for fixed_params,vary_params in params_list:
         load_data=rqc.load_json,
         filename=f'params_CT_MPS_0_coherence_T_L{L}_series.txt',
         # filename=f'params_CT_MPS_0_coherence_T_Lall_series.txt',
-        filelist = None,
+        filelist = 'existing.txt',
         load=False,
         data_dict=None,
     )
@@ -39,7 +39,7 @@ for fixed_params,vary_params in params_list:
 with open(f'params_CT_MPS_0_coherence_T_L{L}_series.txt','r') as f:
 # with open(f'params_CT_MPS_0_coherence_T_Lall_series.txt','r') as f:
     # lines=f.readlines()
-    linewidth=1
+    linewidth=92
     count=0
     total_string = []
     string = ''
