@@ -20,16 +20,19 @@ def run(L, ob):
     ob2=ob+'2'
 
     zip_fn = {
-    'O':f'MPS_0-1_C_m_O_T_L{L}.zip',
-    'DW':f'MPS_0-1_C_m_x01_T_L{L}.zip'
+    # 'O':f'MPS_0-1_C_m_O_T_L{L}.zip',
+    'O':f'MPS_0-1_C_m_O_x01_T_L{L}.zip',
+    # 'DW':f'MPS_0-1_C_m_x01_T_L{L}.zip'
+    'DW':f'MPS_0-1_C_m_DW_x01_T_L{L}.zip'
     }
     params_list=[
     ({'nu':0,'de':1,},
     {
-    'p_ctrl':[0.4,0.5,0.6],
+    # 'p_ctrl':[0.4,0.5,0.6],
+    'p_ctrl':[.5],
     'p_proj':np.linspace(0.0,0.0,1),
-    'sC':np.arange(0,500),
-    'sm':np.arange(500),
+    'sC':np.arange(0,10000),
+    'sm':np.arange(1000),
     'L':[L]
     }
     ),
@@ -51,31 +54,35 @@ def run(L, ob):
             zip_fn = '/p/work/hpan/CT_MPS/'+zip_fn[ob]
         )
     df_MPS_0_T=rqc.convert_pd(data_MPS_0_T_DW_dict,names=['Metrics','sm','sC','p_ctrl','L','p_proj',])
-
     
     def process_each_traj(df,L,p_ctrl,sC,p_proj=0, threshold=1e-8):
-        # data_ob1.shape = (num_trajectories, num_timepoints), "first moment of ob"
-        # data_ob2.shape = (num_trajectories, num_timepoints), "second moment of ob"
-        # traj_var = E_traj[<ob>^2] - (E_traj[<ob>])^2
-        # state_var = E_traj[<ob^2>] - E_traj[<ob>]^2
-        # shot_var = E_traj[<ob^2>] - (E_traj[<ob>])^2
+        # data_ob1.shape = (num_state, num_timepoints), ob1 means "first moment of ob"
+        # data_ob2.shape = (num_state, num_timepoints), ob2 means "second moment of ob"
+        # traj_var = E_traj[E_state[ob]^2] - (E_traj[E_state[ob]])^2
+        # state_var = E_state[<ob^2>] - E_state[<ob>]^2
+        # shot_var = E_traj[E_state[ob^2]] - (E_traj[E_state[ob]])^2
         data = df['observations'].xs(sC,level='sC').xs(p_ctrl,level='p_ctrl').xs(p_proj,level='p_proj').xs(L,level='L')
         data_ob1=np.stack(data.xs(ob1,level='Metrics'))
         data_ob2=np.stack(data.xs(ob2,level='Metrics'))
         sigma_mc=data_ob1.var(axis=0)
         traj_var = sigma_mc
         state_var = data_ob2-data_ob1**2
+        shot_var = data_ob2.mean(axis=0) - data_ob1.mean(axis=0)**2
         traj_weight = (traj_var<threshold).astype(float)
         state_weight = (state_var<threshold).sum(axis=0)
+        shot_weight = (shot_var<threshold).astype(float)
         num_state = state_var.shape[0]
-        return num_state, traj_weight, state_weight, traj_var, state_var
+        return num_state, traj_weight, state_weight, shot_weight, traj_var, state_var, shot_var
         
     traj_weight_list = {}
     state_weight_list = {}
+    shot_weight_list = {}
     traj_mean_list = {}
     state_mean_list = {}
+    shot_mean_list = {}
     traj_var_list = {}
     state_var_list = {}
+    shot_var_list = {}
     for p in tqdm(params_list[0][1]['p_ctrl']):
         for L in params_list[0][1]['L']:
             print(p,L)
@@ -83,39 +90,51 @@ def run(L, ob):
             num_traj=0
             traj_weight_sum=0
             state_weight_sum=0
+            shot_weight_sum=0
             traj_mean_sum=0
             state_mean_sum=0
+            shot_mean_sum=0
             traj_sq_sum=0
             state_sq_sum=0
-            for sC in range(params_list[0][1]['sC'].shape[0]):
+            shot_sq_sum=0
+            for sC in params_list[0][1]['sC']:
                 try:
-                    num_state_, traj_weight, state_weight, traj_var, state_var = process_each_traj(df_MPS_0_T,L=L,p_ctrl=p,sC=sC,p_proj=0)
+                    num_state_, traj_weight, state_weight, shot_weight, traj_var, state_var, shot_var = process_each_traj(df_MPS_0_T,L=L,p_ctrl=p,sC=sC,p_proj=0)
                     num_traj +=1
                     traj_weight_sum +=traj_weight
                     state_weight_sum +=state_weight
+                    shot_weight_sum +=shot_weight
                     traj_mean_sum += traj_var
                     state_mean_sum += state_var.sum(axis=0)
+                    shot_mean_sum += shot_var
                     traj_sq_sum += (traj_var**2)
                     state_sq_sum += (state_var**2).sum(axis=0)
+                    shot_sq_sum += (shot_var**2)
                     num_state += num_state_
                 except:
                     pass
             traj_weight_list[(p,L)]=traj_weight_sum/num_traj
             state_weight_list[(p,L)]=state_weight_sum/num_state
+            shot_weight_list[(p,L)]=shot_weight_sum/num_traj
             traj_mean_list[(p,L)]=traj_mean_sum/num_traj
             state_mean_list[(p,L)]=state_mean_sum/num_state
+            shot_mean_list[(p,L)]=shot_mean_sum/num_traj
             traj_var_list[(p,L)] = traj_sq_sum/num_traj - (traj_mean_sum/num_traj)**2
             state_var_list[(p,L)] = state_sq_sum/num_state - (state_mean_sum/num_state)**2
+            shot_var_list[(p,L)] = shot_sq_sum/num_traj - (shot_mean_sum/num_traj)**2
 
 
-    with open(f'traj_state_var_{ob}_L{L}.pickle','wb') as f:
+    with open(f'traj_state_var_{ob}_L{L}.pickle.new','wb') as f:
         pickle.dump({
-            'traj_weight': traj_weight_list, 
+            'traj_weight': traj_weight_list,
             'state_weight': state_weight_list,
+            'shot_weight': shot_weight_list,
             'traj_mean': traj_mean_list,
             'state_mean': state_mean_list,
+            'shot_mean': shot_mean_list,
             'traj_var': traj_var_list,
             'state_var': state_var_list,
+            'shot_var': shot_var_list,
             },f)
     # return traj_weight_list, state_weight_list
 
