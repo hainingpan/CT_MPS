@@ -802,6 +802,7 @@ function adder_MPO(i1::Int,xj::Set,qubit_site::Vector{Index{Int64}},L::Int,phy_r
         add1_6,add1_3=power_mpo(add1_mpo,[div(2^L,6)+1,div(2^L,3)])
         i2=phy_list[mod(i1,L)+1]    # 2
         add_condition=apply(add1_6,P_MPO([phy_ram[i2]],[0],qubit_site)) + apply(add1_3,P_MPO([phy_ram[i2]],[1],qubit_site))
+        return add_condition
         iLm2=phy_list[mod(i1+L-4,L)+1]  # L-2
         iLm1=phy_list[mod(i1+L-3,L)+1 ]   # L-1
         iL=phy_list[mod(i1+L-2,L)+1] # L i1+(L-1) -> L, (x-1)%L+1

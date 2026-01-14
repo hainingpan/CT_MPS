@@ -4,7 +4,9 @@ sys.path.append(dir_path)
 # import matplotlib.pyplot as plt
 
 from tqdm import tqdm
-from plot_utils import *
+# from plot_utils import *
+import numpy as np
+import rqc
 
 
 # L=12
@@ -12,7 +14,7 @@ def run(L):
     params_list=[
     ({'nu':0,'de':1,},
     {
-    'p_ctrl':[0.35],
+    'p_ctrl':[0.5],
     # 'p_ctrl':[.47,.49,.51,.53],
     # 'p_ctrl':[.4,.45,.5,.55,.6],
     # 'p_ctrl':[0.4,0.45,0.47,0.49,0.5,0.51,0.53,0.55,0.6],
@@ -26,19 +28,19 @@ def run(L):
     }
     ),
     ]
-    ob="DW"
-    # ob="O"
+    # ob="DW"
+    ob="O"
     ob1=ob+'1'
     ob2=ob+'2'
     for fixed_params,vary_params in params_list:
-        data_MPS_0_T_DW_dict=generate_params(
+        data_MPS_0_T_DW_dict=rqc.generate_params(
             fixed_params=fixed_params,
             vary_params=vary_params,
             fn_template='MPS_({nu},{de})_L{L}_pctrl{p_ctrl:.3f}_pproj{p_proj:.3f}_sC{sC}_sm{sm}_x01_DW_T.json',
             # fn_template='MPS_({nu},{de})_L{L}_pctrl{p_ctrl:.3f}_pproj{p_proj:.3f}_sC{sC}_sm{sm}_O_T.json',
             fn_dir_template='/MPS_0-1_C_m_x01_T',
             input_params_template='',
-            load_data=load_zip_json,
+            load_data=rqc.load_zip_json,
             filename=None,
             filelist=None,
             load=True,
@@ -51,8 +53,8 @@ def run(L):
             # zip_fn=f'./MPS_0-1_shots_L{L}.zip' 
             # zip_fn=f'./MPS_0-1_MIPT_T_L{L}.zip' 
         )
-    df_MPS_0_T=convert_pd(data_MPS_0_T_DW_dict,names=['Metrics','sm','sC','p_ctrl','L','p_proj',])
-
+    df_MPS_0_T=rqc.convert_pd(data_MPS_0_T_DW_dict,names=['Metrics','sm','sC','p_ctrl','L','p_proj',])
+    return df_MPS_0_T
     # def trajvar(df,L,p_ctrl,sC):
     #     data=df.xs(L,level='L').xs(p_ctrl,level='p_ctrl').xs(0.0,level='p_proj').xs(sC,level='sC')
 
