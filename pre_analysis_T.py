@@ -6,13 +6,13 @@ sys.path.append(dir_path)
 from tqdm import tqdm
 from plot_utils import *
 
-L=10
+L=20
 
 params_list=[
 ({'nu':0,'de':1,},
 {
-'p_ctrl':[0.35],
-# 'p_ctrl':[0.2, 0.25, 0.3],
+# 'p_ctrl':[0.35],
+'p_ctrl':[0.2, 0.25, 0.3, 0.35],
 # 'p_ctrl':[.47,.49,.51,.53],
 # 'p_ctrl':[.4,.45,.5,.55,.6],
 # 'p_ctrl':[0.4,0.45,0.47,0.49,0.5,0.51,0.53,0.55,0.6],
@@ -62,7 +62,7 @@ for fixed_params,vary_params in params_list:
 
 with open(f'params_CT_MPS_0_C_m_T_L{L}_series.txt','r') as f:
     # lines=f.readlines()
-    linewidth=15000
+    linewidth=250
     count=0
     total_string = []
     string = ''
