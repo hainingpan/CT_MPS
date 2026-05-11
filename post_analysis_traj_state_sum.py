@@ -1,4 +1,19 @@
 # This script is compute the sum of trajectory fluctuation and the "trajectory-averaged" state fluctuation, given a specific circuit.
+#
+# Readout error (confusion matrix) support:
+#   eps0 = P(measure 1 | true state 0)  -- false positive rate
+#   eps1 = P(measure 0 | true state 1)  -- false negative rate
+#
+#   Per-qubit 2x2 confusion matrix (column-stochastic, Qiskit convention):
+#       C = [[1-eps0,  eps1 ],
+#            [eps0,    1-eps1]]
+#
+#   The stored MPS data (O1 = <M_z>, O2 = <M_z^2>) transforms as:
+#       O1_noisy = alpha * O1 + beta
+#       O2_noisy = alpha^2 * O2 + (1-alpha^2)/L + 2*alpha*beta*(1-1/L)*O1 + beta^2*(1-1/L)
+#   where alpha = 1 - eps0 - eps1,  beta = eps1 - eps0.
+#
+#   eps0 = eps1 = 0 recovers the pristine (no readout error) case.
 import sys
 dir_path='../control_transition'
 sys.path.append(dir_path)
@@ -6,7 +21,10 @@ sys.path.append(dir_path)
 from tqdm import tqdm
 from plot_utils import *
 # L=12
-def run(L):
+def run(L, eps0=0.0, eps1=0.0):
+    alpha = 1 - eps0 - eps1
+    beta = eps1 - eps0
+
     params_list=[
     ({'nu':0,'de':1,},
     {
@@ -52,11 +70,19 @@ def run(L):
         # trajecotry fluctuation, fix SC, as a function T 
         data = df['observations'].xs(sC,level='sC').xs(p_ctrl,level='p_ctrl').xs(0.0,level='p_proj').xs(L,level='L')
         data_DW1=np.stack(data.xs(ob1,level='Metrics'))
-        sigma_mc=data_DW1.var(axis=0)
+        data_DW2=np.stack(data.xs(ob2,level='Metrics'))
+
+        # Apply readout confusion matrix: O1,O2 -> O1_noisy,O2_noisy
+        O1 = alpha * data_DW1 + beta
+        O2 = (alpha**2 * data_DW2
+              + (1 - alpha**2) / L
+              + 2 * alpha * beta * (1 - 1/L) * data_DW1
+              + beta**2 * (1 - 1/L))
+
+        sigma_mc=O1.var(axis=0)
 
         # state_fluctuation
-        data_DW2=np.stack(data.xs(ob2,level='Metrics'))
-        qvar=(data_DW2-data_DW1**2)
+        qvar=(O2-O1**2)
         sigma_s=qvar.mean(axis=0)
 
         return sigma_mc+sigma_s
@@ -74,13 +100,18 @@ def run(L):
                 #     pass
             sigma_shot[(p,L)]=np.array(sigma_shot[(p,L)])
 
+    ro_tag = f'_ro{eps0:.4f}_{eps1:.4f}' if (eps0 > 0 or eps1 > 0) else ''
     # with open(f'traj_state_sum_DW_L{L}.pickle','wb') as f:
-    with open(f'traj_state_sum_{ob}_L{L}.pickle','wb') as f:
+    with open(f'traj_state_sum_{ob}_L{L}{ro_tag}.pickle','wb') as f:
         pickle.dump(sigma_shot,f)
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--L', type=int, required=True, help='System size parameter')
+    parser.add_argument('--eps0', type=float, default=0.0,
+                        help='P(measure 1 | true 0): readout false-positive rate')
+    parser.add_argument('--eps1', type=float, default=0.0,
+                        help='P(measure 0 | true 1): readout false-negative rate')
     args = parser.parse_args()
-    run(args.L)
+    run(args.L, eps0=args.eps0, eps1=args.eps1)
